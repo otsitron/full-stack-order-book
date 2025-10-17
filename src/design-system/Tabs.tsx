@@ -61,7 +61,7 @@ export function Tab({ value, children, className = "" }: TabProps) {
   const isActive = activeTab === value;
 
   const baseClasses =
-    "px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900";
+    "px-4 py-2 text-sm font-medium transition-colors focus:outline-none";
   const activeClasses = "border-b-2 border-orange-500 text-orange-500";
   const inactiveClasses =
     "text-gray-400 hover:text-white hover:border-b-2 hover:border-gray-500";

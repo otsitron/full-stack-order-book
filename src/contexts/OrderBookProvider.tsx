@@ -1,8 +1,6 @@
 "use client";
 
 import React, {
-  createContext,
-  useContext,
   useState,
   useEffect,
   useCallback,
@@ -64,14 +62,22 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
       });
     };
 
-    const newAsks = generateOrders(basePrice, 13, false);
-    const newBids = generateOrders(basePrice - 0.5, 13, true);
+    const newAsks = generateOrders(basePrice, 13, false).sort(
+      (a, b) => a.price - b.price
+    ); // Ascending: lowest ask first
+    const newBids = generateOrders(basePrice - 0.5, 13, true).sort(
+      (a, b) => b.price - a.price
+    ); // Descending: highest bid first
 
     console.log(
       "Generated fallback data - asks:",
       newAsks.length,
       "bids:",
-      newBids.length
+      newBids.length,
+      "First ask:",
+      newAsks[0],
+      "First bid:",
+      newBids[0]
     );
 
     setAsks(newAsks);
@@ -79,6 +85,13 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
 
     const allSizes = [...newAsks, ...newBids].map((order) => order.size);
     setMaxSize(Math.max(...allSizes));
+
+    console.log(
+      "State updated - asks:",
+      newAsks.length,
+      "bids:",
+      newBids.length
+    );
   }, [selectedSymbol, precision]);
 
   // Handle order book updates with smooth animations
@@ -105,17 +118,21 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
     }
 
     // Convert to our format and calculate totals
-    const processedAsks: Order[] = newAsks.map((ask: [number, number]) => ({
-      price: ask[0],
-      size: ask[1],
-      total: ask[0] * ask[1],
-    }));
+    const processedAsks: Order[] = newAsks
+      .map((ask: [number, number]) => ({
+        price: ask[0],
+        size: ask[1],
+        total: ask[0] * ask[1],
+      }))
+      .sort((a, b) => a.price - b.price); // Ascending: lowest ask first
 
-    const processedBids: Order[] = newBids.map((bid: [number, number]) => ({
-      price: bid[0],
-      size: bid[1],
-      total: bid[0] * bid[1],
-    }));
+    const processedBids: Order[] = newBids
+      .map((bid: [number, number]) => ({
+        price: bid[0],
+        size: bid[1],
+        total: bid[0] * bid[1],
+      }))
+      .sort((a, b) => b.price - a.price); // Descending: highest bid first
 
     // Track price changes for visual feedback
     const newPriceChanges = new Map<number, PriceChange>();
@@ -264,11 +281,67 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
 
   // Initialize WebSocket connection
   useEffect(() => {
-    // Generate initial fallback data to ensure UI has data
-    generateFallbackData();
+    console.log("Initializing OrderBookProvider...");
+
+    // Generate initial fallback data immediately
+    const generateInitialData = () => {
+      const basePrice = selectedSymbol === "BTC" ? 50000 : 3000;
+      console.log(
+        `Generating initial data for ${selectedSymbol} with precision ${precision}`
+      );
+
+      const generateOrders = (
+        basePrice: number,
+        count: number,
+        isBid: boolean
+      ): Order[] => {
+        return Array.from({ length: count }, (_, i) => {
+          const priceOffset = isBid ? -i * 0.5 : i * 0.5;
+          const price = basePrice + priceOffset;
+          const size = Math.random() * 10 + 1;
+          const total = price * size;
+          return {
+            price: Number(price.toFixed(precision)),
+            size: Number(size.toFixed(4)),
+            total: Number(total.toFixed(2)),
+          };
+        });
+      };
+
+      const newAsks = generateOrders(basePrice, 13, false).sort(
+        (a, b) => a.price - b.price
+      );
+      const newBids = generateOrders(basePrice - 0.5, 13, true).sort(
+        (a, b) => b.price - a.price
+      );
+
+      console.log(
+        "Generated initial data - asks:",
+        newAsks.length,
+        "bids:",
+        newBids.length
+      );
+      setAsks(newAsks);
+      setBids(newBids);
+      setMaxSize(
+        Math.max(...[...newAsks, ...newBids].map((order) => order.size))
+      );
+      setUseFallbackData(true);
+    };
+
+    generateInitialData();
+
+    // Start fallback data updates every 3 seconds
+    fallbackIntervalRef.current = setInterval(() => {
+      console.log("Interval tick - generating new fallback data");
+      generateInitialData();
+    }, 3000);
+
+    // Try to connect WebSocket
     connectWebSocket();
 
     return () => {
+      console.log("Cleaning up OrderBookProvider...");
       if (wsRef.current) {
         wsRef.current.close();
       }
@@ -279,7 +352,7 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
         clearInterval(fallbackIntervalRef.current);
       }
     };
-  }, [connectWebSocket, generateFallbackData]);
+  }, [selectedSymbol, precision]);
 
   // Reconnect when symbol or precision changes
   useEffect(() => {
@@ -287,11 +360,20 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
       wsRef.current.close();
     }
     connectWebSocket();
-  }, [selectedSymbol, precision, connectWebSocket]);
+  }, [selectedSymbol, precision]);
 
   // Computed values
   const spread = asks[0]?.price - bids[0]?.price || 0;
   const spreadPercentage = (spread / bids[0]?.price) * 100 || 0;
+
+  // Bid-Ask Ratio calculation
+  const totalBidVolume = bids.reduce((sum, bid) => sum + bid.size, 0);
+  const totalAskVolume = asks.reduce((sum, ask) => sum + ask.size, 0);
+  const totalVolume = totalBidVolume + totalAskVolume;
+  const bidPercentage =
+    totalVolume > 0 ? (totalBidVolume / totalVolume) * 100 : 50;
+  const askPercentage =
+    totalVolume > 0 ? (totalAskVolume / totalVolume) * 100 : 50;
 
   // Context value
   const contextValue: OrderBookContextType = {
@@ -316,6 +398,8 @@ export const OrderBookProvider: React.FC<OrderBookProviderProps> = ({
     // Computed values
     spread,
     spreadPercentage,
+    bidPercentage,
+    askPercentage,
   };
 
   return (

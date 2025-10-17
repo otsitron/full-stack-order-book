@@ -42,6 +42,8 @@ export interface OrderBookContextType {
   // Computed values
   spread: number;
   spreadPercentage: number;
+  bidPercentage: number;
+  askPercentage: number;
 }
 
 export const OrderBookContext = createContext<OrderBookContextType | undefined>(

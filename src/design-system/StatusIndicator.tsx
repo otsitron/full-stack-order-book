@@ -43,7 +43,9 @@ export default function StatusIndicator({
   return (
     <div className="flex items-center gap-2">
       <div className={`${sizeClasses} rounded-full ${config.color}`} />
-      <span className="text-xs text-gray-400">{displayLabel}</span>
+      <span className="text-xs text-gray-400 w-20 text-left">
+        {displayLabel}
+      </span>
     </div>
   );
 }

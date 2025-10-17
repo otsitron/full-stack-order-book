@@ -52,7 +52,7 @@ export default function OrderRow({
     }
   };
 
-  const bgColor = type === "ask" ? "bg-red-900/20" : "bg-green-900/20";
+  const bgColor = type === "ask" ? "bg-red-500/30" : "bg-green-500/30";
   const textColor = type === "ask" ? "text-red-400" : "text-green-400";
 
   return (
@@ -62,7 +62,7 @@ export default function OrderRow({
         style={{ width: `${getDepthBarWidth(order.size)}%` }}
       />
       <div
-        className={`relative grid grid-cols-3 gap-4 p-3 text-sm hover:bg-gray-700/50 transition-colors ${getPriceChangeClass(
+        className={`relative grid grid-cols-3 gap-2 p-1 text-xs hover:bg-gray-700/50 transition-colors ${getPriceChangeClass(
           order.price
         )}`}
       >
