@@ -2,6 +2,8 @@
 
 A high-performance, real-time order book application built with Next.js, TypeScript, and Tailwind CSS. Features live WebSocket data integration, custom design system, and professional trading interface inspired by Hyperliquid.
 
+🔗 **Live Demo:** [https://full-stack-order-book.vercel.app](https://full-stack-order-book.vercel.app)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
